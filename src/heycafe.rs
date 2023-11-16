@@ -27,7 +27,7 @@ pub async fn listfeeds(
 
     if let Some(member) = ctx.author_member().await {
         if !member.roles.contains(&req_role) {
-            let role_name = req_role.to_role_cached(&ctx).unwrap().name;
+            let role_name = req_role.to_role_cached(ctx).unwrap().name;
             let msg = format!("{}, you must have the {} role!", ctx.author(), role_name);
             ctx.say(msg).await?;
             return Ok(());
@@ -80,7 +80,7 @@ pub async fn listfeeds(
             .json::<serde_json::Value>()
             .await?;
 
-        let channel_id = ChannelId { 0: feed.channel_id as u64 };
+        let channel_id = ChannelId(feed.channel_id as u64);
 
         let display_name = api_info["response_data"]["name"].as_str().unwrap();
         let alias = api_info["response_data"]["alias"].as_str().unwrap();
@@ -94,7 +94,7 @@ pub async fn listfeeds(
         };
 
         let role_name = if feed.mention_role_id != 0 {
-            let role_id = RoleId { 0: feed.mention_role_id as u64 };
+            let role_id = RoleId(feed.mention_role_id as u64);
 
             role_id.to_role_cached(ctx).unwrap().name
         } else {

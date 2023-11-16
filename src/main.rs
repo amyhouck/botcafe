@@ -77,7 +77,7 @@ async fn feed_check(ctx: &serenity::Context, data: &Data) -> Result<(), Error> {
 
             if has_error(&api_data) { continue; }
 
-            if feed.feed_type == String::from("user") && !api_data["response_data"]["conversations"][0]["cafe"].is_boolean() { continue; }
+            if &feed.feed_type == "user" && !api_data["response_data"]["conversations"][0]["cafe"].is_boolean() { continue; }
 
             let new_timestamp = api_data["response_data"]["conversations"][0]["date_created"].as_str().unwrap().parse::<i64>().unwrap();
             if feed.last_post_timestamp > new_timestamp  { continue; }
@@ -109,7 +109,7 @@ async fn feed_check(ctx: &serenity::Context, data: &Data) -> Result<(), Error> {
             embed_desc = html_decode(embed_desc);
             embed_desc = escpae_markdown(embed_desc);
 
-            let tag_info = if feed.tag_id != String::from("none") {
+            let tag_info = if &feed.tag_id != "none" {
                 format!("{} {}", api_data["response_data"]["conversations"][0]["tag"]["emoji"].as_str().unwrap(), api_data["response_data"]["conversations"][0]["tag"]["name"].as_str().unwrap())
             } else {
                 String::new()
@@ -226,8 +226,8 @@ async fn main() {
             Box::pin(async move {
                 poise::builtins::register_globally(ctx, &framework.options().commands).await?;
                 Ok(Data {
-                    database: database,
-                    client: client,
+                    database,
+                    client,
                 })
             })
         });

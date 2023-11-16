@@ -13,17 +13,17 @@ pub fn html_decode(mut content: String) -> String {
     content = content.replace("&#43;", "+");
     content = content.replace("&#96;", "`");
 
-    return content;
+    content
 }
 
 // Escape some Discord markdown
 pub fn escpae_markdown(mut content: String) -> String {
     content = content.replace("###", "");
     content = content.replace("##", "");
-    content = content.replace("#", r#"\#"#);
+    content = content.replace('#', r#"\#"#);
     content = content.replace(r#"  "#, "\n");
     
-    return content;
+    content
 }
 
 // Grab required role to do things from DB
@@ -39,7 +39,7 @@ pub async fn grab_required_role(db: &sqlx::SqlitePool, guild_id: i64) -> u64 {
         .await
         .unwrap();
 
-    return required_role.feed_settings_required_roleid as u64;
+    required_role.feed_settings_required_roleid as u64
 }
 
 // Grab data from API
@@ -83,15 +83,15 @@ pub async fn grab_data(tag_id: &str, feed_type: &str, heycafe_id: &str, client: 
         Ok(data) => {
             if data["response_data"]["conversations"].is_boolean() {
                 println!("Conversation not found - API Link: {}", api_feed_link);
-                return None;
+                None
             } else {
-                return Some(data);
+                Some(data)
             }
         },
         Err(e) => {
             println!("JSON ERROR: {}", e);
             
-            return None;
+            None
         }
     }
 }
@@ -103,5 +103,5 @@ pub fn has_error(data: &Value) -> bool {
         return true;
     }
 
-    return false;
+    false
 }

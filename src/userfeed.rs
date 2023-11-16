@@ -38,7 +38,7 @@ pub async fn add(
 
     if let Some(member) = ctx.author_member().await {
         if !member.roles.contains(&req_role) {
-            let role_name = req_role.to_role_cached(&ctx).unwrap().name;
+            let role_name = req_role.to_role_cached(ctx).unwrap().name;
             let msg = format!("{}, you must have the {} role!", ctx.author(), role_name);
             ctx.say(msg).await?;
             return Ok(());
@@ -64,13 +64,13 @@ pub async fn add(
 
     // If role set, add it
     let mut role_id: i64 = 0;
-    if !mention_role.is_none() {
+    if mention_role.is_some() {
         role_id = *mention_role.as_ref().unwrap().id.as_u64() as i64;
     }
 
     // If tag specified
     let mut tag_id = String::from("none");
-    if !tag_name.is_none() {
+    if tag_name.is_some() {
         if api_user_data["response_data"]["tags"].is_boolean() {
             let msg = format!("{}, user *@{}* does not have any tags!", ctx.author(), username);
             ctx.say(msg).await?;
@@ -132,7 +132,7 @@ pub async fn delete(
 
     if let Some(member) = ctx.author_member().await {
         if !member.roles.contains(&req_role) {
-            let role_name = req_role.to_role_cached(&ctx).unwrap().name;
+            let role_name = req_role.to_role_cached(ctx).unwrap().name;
             let msg = format!("{}, you must have the {} role!", ctx.author(), role_name);
             ctx.say(msg).await?;
             return Ok(());
