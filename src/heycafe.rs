@@ -5,34 +5,18 @@ use poise::serenity_prelude as serenity;
 use reqwest::{get, Client, header::USER_AGENT};
 use serde_json::Value;
 use serenity::{ChannelId, RoleId};
-use botcafe::grab_required_role;
 
 // COMMAND - /listfeeds
 /// Lists all feeds set for this server.
-#[poise::command(slash_command)]
+#[poise::command(
+    slash_command,
+    required_permissions = "MANAGE_CHANNELS",
+)]
 pub async fn listfeeds(
     ctx: Context<'_>,
     #[description = "Type \"user\" or \"cafe\" for the type of feeds to list."] feed_type: String
 ) -> Result<(), Error> {
     let guild_id = *ctx.guild_id().unwrap().as_u64() as i64;
-
-    // Check user's role
-    let req_role = grab_required_role(&ctx.data().database, guild_id).await;
-    if req_role == 0 {
-        let msg = format!("{}, you must set a required role to use these commands with `/botcafe feed_role`!", ctx.author());
-        ctx.say(msg).await?;
-        return Ok(());
-    }
-    let req_role = RoleId(req_role);
-
-    if let Some(member) = ctx.author_member().await {
-        if !member.roles.contains(&req_role) {
-            let role_name = req_role.to_role_cached(ctx).unwrap().name;
-            let msg = format!("{}, you must have the {} role!", ctx.author(), role_name);
-            ctx.say(msg).await?;
-            return Ok(());
-        }
-    }
 
     // Grab feeds
     if feed_type.as_str() != "user" && feed_type.as_str() != "cafe" {
@@ -127,41 +111,5 @@ pub async fn hey(ctx: Context<'_>) -> Result<(), Error> {
     let guild_id = *ctx.guild_id().unwrap().as_u64() as i64;
     println!("[LOG] COMMAND: /hey - Guild: {}({})", ctx.guild().unwrap().name, guild_id);
 
-    Ok(())
-}
-
-// COMMAND - /botcafe
-/// Modify Bot.Café settings
-#[poise::command(
-    slash_command,
-    subcommands("feed_role"),
-)]
-pub async fn botcafe(_: Context<'_>) -> Result<(), Error> {
-    Ok(())
-}
-
-// COMMAND - /botcafe feed_role [ROLE]
-/// Set the minimum role required to set Hey.Café feeds
-#[poise::command(
-    slash_command,
-    required_permissions = "MANAGE_CHANNELS"
-)]
-pub async fn feed_role(
-    ctx: Context<'_>,
-    required_role: serenity::Role
-) -> Result<(), Error> {
-    let role_id = *required_role.id.as_u64() as i64;
-    let guild_id = *ctx.guild_id().unwrap().as_u64() as i64;
-
-    sqlx::query!("UPDATE guild_settings SET feed_settings_required_roleid = ? WHERE guild_id = ?", role_id, guild_id)
-        .execute(&ctx.data().database)
-        .await
-        .unwrap();
-
-    let msg = format!("{}, the *{}* role is now required to add/remove role feeds!", ctx.author(), required_role.name);
-    ctx.say(msg).await?;
-
-    println!("[LOG] COMMAND: /botcafe feed_role {} - Guild: {}({})", required_role, ctx.guild().unwrap().name, guild_id);
-    
     Ok(())
 }
