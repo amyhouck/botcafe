@@ -7,14 +7,13 @@ use serde_json::Value;
 use crate::serenity::{Mention, ChannelId, RoleId};
 use serenity::model::channel::Embed;
 use chrono::prelude::*;
-use botcafe::{html_decode, escpae_markdown, has_error, grab_data};
+use botcafe::{html_decode, escpae_markdown, has_error, grab_feed_data};
 
 type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
 
 mod heycafe;
-mod userfeed;
-mod cafefeed;
+mod feeds;
 
 async fn listener(ctx: &serenity::Context, event: &poise::Event<'_>, data: &Data) -> Result<(), Error> {
     match event {
@@ -70,9 +69,24 @@ async fn feed_check(ctx: &serenity::Context, data: &Data) -> Result<(), Error> {
 
         for feed in feed_vector {
             // Grab data and run checks
-            let api_data = match grab_data(&feed.tag_id, &feed.feed_type, &feed.heycafe_id, &data.client).await {
-                Some(neat) => neat,
-                None => continue,
+            let tag_var = if feed.tag_id.as_str() != "none" {
+                format!("&tag={}", feed.tag_id)
+            } else { String::new() };
+        
+            let api_feed_type = match feed.feed_type.as_str() {
+                "user" => "account_conversations",
+                "cafe" => "cafe_conversations",
+                _ => ""
+            };
+        
+            let api_feed_link = format!("https://endpoint.hey.cafe/api/{}?query={}&convert_numeric=conversations&count=1{}", api_feed_type, feed.heycafe_id, tag_var);
+
+            let api_data = match grab_feed_data(api_feed_link, &data.client).await {
+                Ok(data) => data,
+                Err(err) => {
+                    println!("{}", err);
+                    continue;
+                }
             };
 
             if has_error(&api_data) { continue; }
@@ -211,11 +225,9 @@ async fn main() {
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
             commands: vec![
-                userfeed::userfeed(),
-                cafefeed::cafefeed(),
                 heycafe::listfeeds(),
                 heycafe::hey(),
-                heycafe::botcafe()
+                feeds::feed(),
             ],
             event_handler: |ctx, event, _, data| Box::pin(listener(ctx, event, data)),
             ..Default::default()

@@ -1,4 +1,5 @@
 use serde_json::Value;
+type Error = Box<dyn std::error::Error + Send + Sync>;
 
 // Decode HTML from Café feeds
 pub fn html_decode(mut content: String) -> String {
@@ -26,38 +27,9 @@ pub fn escpae_markdown(mut content: String) -> String {
     content
 }
 
-// Grab required role to do things from DB
-struct HeyGuildSettings {
-    id: i64,
-    guild_id: i64,
-    feed_settings_required_roleid: i64
-}
-
-pub async fn grab_required_role(db: &sqlx::SqlitePool, guild_id: i64) -> u64 {
-    let required_role = sqlx::query_as!(HeyGuildSettings, "SELECT * FROM guild_settings WHERE guild_id = ?", guild_id)
-        .fetch_one(db)
-        .await
-        .unwrap();
-
-    required_role.feed_settings_required_roleid as u64
-}
-
-// Grab data from API
-pub async fn grab_data(tag_id: &str, feed_type: &str, heycafe_id: &str, client: &reqwest::Client) -> Option<Value> {
-    let tag_var = if tag_id != "none" {
-        format!("&tag={}", tag_id)
-    } else { String::new() };
-
-    let api_feed_type = match feed_type {
-        "user" => "account_conversations",
-        "cafe" => "cafe_conversations",
-        _ => ""
-    };
-
-    let api_feed_link = format!("https://endpoint.hey.cafe/api/{}?query={}&convert_numeric=conversations&count=1{}", api_feed_type, heycafe_id, tag_var);
-    println!("[DEBUG] {api_feed_link}");
-
-    let init_request = client.get(api_feed_link.clone())
+// FUNCTION - Returns API data from Hey.Cafe as a Result
+pub async fn grab_feed_data(url: String, client: &reqwest::Client) -> Result<Value, Error> {
+    let init_request = client.get(url.clone())
         .send()
         .await;
 
@@ -70,28 +42,26 @@ pub async fn grab_data(tag_id: &str, feed_type: &str, heycafe_id: &str, client: 
                 println!("{}", err);
             }
 
-            return None;
+            return Err("There was an error requesting information!".into());
         }
     };
-
     
-    let res = init_request
+    let heycafe_data = init_request
         .json::<serde_json::Value>()
         .await;
 
-    match res {
+    match heycafe_data {
         Ok(data) => {
-            if data["response_data"]["conversations"].is_boolean() {
-                println!("Conversation not found - API Link: {}", api_feed_link);
-                None
+            if data["system_api_error"].is_boolean() {
+                Ok(data)
             } else {
-                Some(data)
+                println!("Feed not found - API Link: {}", url);
+                Err("No information was found!".into())
             }
         },
         Err(e) => {
             println!("JSON ERROR: {}", e);
-            
-            None
+            Err("There was an error handling information!".into())
         }
     }
 }
