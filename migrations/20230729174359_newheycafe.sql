@@ -8,9 +8,4 @@ CREATE TABLE heycafe_feeds (
     last_post_id TEXT NOT NULL,
     mention_role_id INTEGER NOT NULL,
     tag_id TEXT NOT NULL
-);
-
-CREATE TABLE guild_settings (
-    guild_id INTEGER NOT NULL,
-    permission_feed_role_id INTEGER NOT NULL
 )
